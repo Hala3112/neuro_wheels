@@ -15,13 +15,19 @@ import time
 import pandas as pd
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
+# Initialize session state variables if not present
+if "users" not in st.session_state:
+    st.session_state.users = {}
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
 # Load the pre-trained GPT-2 model and tokenizer
 model = GPT2LMHeadModel.from_pretrained("gpt2")
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
 # Function to generate a doctor-like, friendly response
 def get_response(user_input):
-    # Define the instructions for the model to ensure it responds like a friendly doctor
     doctor_prompt = (
         "You are a compassionate and professional doctor helping individuals with mobility impairments. "
         "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
@@ -29,66 +35,71 @@ def get_response(user_input):
         "needs encouragement and practical advice. "
     )
 
-    # Combine the doctor-like instructions with the user's input
     full_input = doctor_prompt + user_input
-
-    # Encode the input text into tokens
     inputs = tokenizer.encode(full_input, return_tensors="pt")
 
-    # Generate a response from the model, adjusting the settings for variability
     outputs = model.generate(
-        inputs, 
-        max_length=200,         # Set max length higher for more context
-        num_return_sequences=1, # We only need one response
-        no_repeat_ngram_size=3,  # Avoid repetition of phrases
-        top_p=0.92,             # Use nucleus sampling to enhance diversity
-        temperature=0.7,        # Control randomness in response generation
-        do_sample=True          # Ensure sampling for varied responses
+        inputs,
+        max_length=200,
+        num_return_sequences=1,
+        no_repeat_ngram_size=3,
+        top_p=0.92,
+        temperature=0.7,
+        do_sample=True
     )
 
-    # Decode the output tokens to text
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-    # Remove the prompt (doctor instructions) from the response
     response = response.replace(doctor_prompt, "").strip()
 
     return response
 
 # Streamlit page configuration
 st.set_page_config(page_title="NeuroWheels - Chat with NeuroGuide", layout="wide")
-
-# App title
 st.title("🧠 NeuroWheels")
 
 # -------------------------------
-# Sign-in Section
+# Sign-up / Log-in Section
 # -------------------------------
-if "authenticated" not in st.session_state:
-    # Initial authentication setup
-    st.session_state.authenticated = False
-
 if not st.session_state.authenticated:
-    # Sign-in Form
-    st.subheader("Sign In")
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    # Choose sign-up or log-in
+    option = st.radio("Choose an option", ["Sign Up", "Log In"])
 
-    # Hardcoded credentials (you can replace this with a more secure system)
-    correct_username = "user123"
-    correct_password = "password123"
+    if option == "Sign Up":
+        st.subheader("Sign Up")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        confirm_password = st.text_input("Confirm Password", type="password")
 
-    if st.button("Sign In"):
-        if username == correct_username and password == correct_password:
-            st.session_state.authenticated = True
-            st.success("Login successful!")
-        else:
-            st.error("Invalid username or password. Please try again.")
+        if st.button("Create Account"):
+            if username and password:
+                if password == confirm_password:
+                    if username not in st.session_state.users:
+                        st.session_state.users[username] = password
+                        st.session_state.authenticated = True
+                        st.success("Account created successfully! You are now logged in.")
+                    else:
+                        st.warning("Username already exists. Please try a different one.")
+                else:
+                    st.error("Passwords do not match.")
+            else:
+                st.error("Please fill in both username and password.")
+
+    elif option == "Log In":
+        st.subheader("Log In")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+
+        if st.button("Log In"):
+            if username in st.session_state.users and st.session_state.users[username] == password:
+                st.session_state.authenticated = True
+                st.success(f"Welcome back, {username}!")
+            else:
+                st.error("Invalid credentials. Please try again.")
 
 # -------------------------------
-# If authenticated, show the app
+# Main App Content (after login)
 # -------------------------------
 if st.session_state.authenticated:
-    # Sidebar menu
     menu = st.sidebar.selectbox("Navigate", [
         "Welcome & Instructions",
         "Chat with NeuroGuide",
