@@ -166,7 +166,7 @@ if st.session_state.authenticated:
         st.divider()
         st.subheader("🛠 How to Use This App")
         st.markdown("""
-        - 👉 **Chat with NeuroGuide**
+        - 👉 **Chat with NeuroGuide: Your Dr.**
         - 📊 **Health Check-Ups**
         - 🎯 **Unlock Features**
         """)
