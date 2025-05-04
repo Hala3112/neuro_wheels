@@ -8,12 +8,10 @@ Original file is located at
 """
 
 
-# -*- coding: utf-8 -*-
 import streamlit as st
 import os
 import json
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
-import torch
 
 # Path to store user data (in a JSON file)
 USER_DATA_PATH = "user_data.json"
@@ -35,28 +33,20 @@ def get_response(user_input):
         "needs encouragement and practical advice. "
     )
 
-    # Combine the doctor-like instructions with the user's input
     full_input = doctor_prompt + user_input
+    inputs = tokenizer.encode(full_input, return_tensors="pt")
 
-    # Encode the input text into tokens
-    inputs = tokenizer(full_input, return_tensors="pt")
+    outputs = model.generate(
+        inputs,
+        max_length=200,
+        num_return_sequences=1,
+        no_repeat_ngram_size=3,
+        top_p=0.92,
+        temperature=0.7,
+        do_sample=True
+    )
 
-    # Generate a response from the model
-    with torch.no_grad():
-        outputs = model.generate(
-            inputs['input_ids'],
-            max_length=200,
-            num_return_sequences=1,
-            no_repeat_ngram_size=3,
-            top_p=0.92,
-            temperature=0.7,
-            do_sample=True
-        )
-
-    # Decode the output tokens to text
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-    # Clean up the response (remove the doctor prompt)
     response = response.replace(doctor_prompt, "").strip()
 
     return response
