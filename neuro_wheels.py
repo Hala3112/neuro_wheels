@@ -10,15 +10,14 @@ Original file is located at
 
 
 import streamlit as st
-import numpy as np
-import time
-import pandas as pd
+import os
+import json
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
-# Initialize session state variables if not present
-if "users" not in st.session_state:
-    st.session_state.users = {}
+# Path to store user data (in a JSON file)
+USER_DATA_PATH = "user_data.json"
 
+# Initialize session state variables if not present
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
@@ -53,6 +52,17 @@ def get_response(user_input):
 
     return response
 
+# Load or initialize user data (username, password)
+def load_user_data():
+    if os.path.exists(USER_DATA_PATH):
+        with open(USER_DATA_PATH, "r") as file:
+            return json.load(file)
+    return {}
+
+def save_user_data(user_data):
+    with open(USER_DATA_PATH, "w") as file:
+        json.dump(user_data, file)
+
 # Streamlit page configuration
 st.set_page_config(page_title="NeuroWheels - Chat with NeuroGuide", layout="wide")
 st.title("🧠 NeuroWheels")
@@ -64,6 +74,8 @@ if not st.session_state.authenticated:
     # Choose sign-up or log-in
     option = st.radio("Choose an option", ["Sign Up", "Log In"])
 
+    user_data = load_user_data()  # Load existing user data
+
     if option == "Sign Up":
         st.subheader("Sign Up")
         username = st.text_input("Username")
@@ -73,8 +85,9 @@ if not st.session_state.authenticated:
         if st.button("Create Account"):
             if username and password:
                 if password == confirm_password:
-                    if username not in st.session_state.users:
-                        st.session_state.users[username] = password
+                    if username not in user_data:
+                        user_data[username] = password
+                        save_user_data(user_data)  # Save user data to the file
                         st.session_state.authenticated = True
                         st.success("Account created successfully! You are now logged in.")
                     else:
@@ -90,7 +103,7 @@ if not st.session_state.authenticated:
         password = st.text_input("Password", type="password")
 
         if st.button("Log In"):
-            if username in st.session_state.users and st.session_state.users[username] == password:
+            if username in user_data and user_data[username] == password:
                 st.session_state.authenticated = True
                 st.success(f"Welcome back, {username}!")
             else:
