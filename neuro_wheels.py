@@ -28,6 +28,9 @@ tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
 # Function to generate a doctor-like, friendly response
 def get_response(user_input):
+    # Use the device (either CPU or GPU if available)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
     doctor_prompt = (
         "You are a compassionate and professional doctor helping individuals with mobility impairments. "
         "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
@@ -39,7 +42,7 @@ def get_response(user_input):
     full_input = doctor_prompt + user_input
 
     # Encode the input text into tokens
-    inputs = tokenizer(full_input, return_tensors="pt")
+    inputs = tokenizer(full_input, return_tensors="pt").to(device)
 
     # Generate a response from the model
     with torch.no_grad():
@@ -60,6 +63,7 @@ def get_response(user_input):
     response = response.replace(doctor_prompt, "").strip()
 
     return response
+
 
 # Load or initialize user data (username, password)
 def load_user_data():
