@@ -27,7 +27,6 @@ def get_response(user_input):
         "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
         "When answering, imagine you are speaking to someone who is going through a challenging time and "
         "needs encouragement and practical advice. "
-        "Here is a question from a patient: "
     )
 
     # Combine the doctor-like instructions with the user's input
@@ -36,11 +35,22 @@ def get_response(user_input):
     # Encode the input text into tokens
     inputs = tokenizer.encode(full_input, return_tensors="pt")
 
-    # Generate a response from the model
-    outputs = model.generate(inputs, max_length=150, num_return_sequences=1, no_repeat_ngram_size=2)
+    # Generate a response from the model, adjusting the settings for variability
+    outputs = model.generate(
+        inputs, 
+        max_length=200,         # Set max length higher for more context
+        num_return_sequences=1, # We only need one response
+        no_repeat_ngram_size=3,  # Avoid repetition of phrases
+        top_p=0.92,             # Use nucleus sampling to enhance diversity
+        temperature=0.7,        # Control randomness in response generation
+        do_sample=True          # Ensure sampling for varied responses
+    )
 
     # Decode the output tokens to text
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+    # Remove the prompt (doctor instructions) from the response
+    response = response.replace(doctor_prompt, "").strip()
 
     return response
 
@@ -50,127 +60,155 @@ st.set_page_config(page_title="NeuroWheels - Chat with NeuroGuide", layout="wide
 # App title
 st.title("🧠 NeuroWheels")
 
-# Sidebar menu
-menu = st.sidebar.selectbox("Navigate", [
-    "Welcome & Instructions",
-    "Chat with NeuroGuide",
-    "View Brain Signals",
-    "Upgrade & Add-ons"
-])
+# -------------------------------
+# Sign-in Section
+# -------------------------------
+if "authenticated" not in st.session_state:
+    # Initial authentication setup
+    st.session_state.authenticated = False
 
-# Session state for chat
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+if not st.session_state.authenticated:
+    # Sign-in Form
+    st.subheader("Sign In")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    # Hardcoded credentials (you can replace this with a more secure system)
+    correct_username = "user123"
+    correct_password = "password123"
+
+    if st.button("Sign In"):
+        if username == correct_username and password == correct_password:
+            st.session_state.authenticated = True
+            st.success("Login successful!")
+        else:
+            st.error("Invalid username or password. Please try again.")
 
 # -------------------------------
-# Chatbot Section (NeuroGuide)
+# If authenticated, show the app
 # -------------------------------
-if menu == "Chat with NeuroGuide":
-    st.header("🤖 NeuroGuide - Your Brainy Assistant")
+if st.session_state.authenticated:
+    # Sidebar menu
+    menu = st.sidebar.selectbox("Navigate", [
+        "Welcome & Instructions",
+        "Chat with NeuroGuide",
+        "View Brain Signals",
+        "Upgrade & Add-ons"
+    ])
 
-    # User input field
-    user_input = st.text_input("Ask NeuroGuide anything...")
+    # Session state for chat
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
 
-    if user_input:
-        # Add user input to the chat history
-        user_message = f"User: {user_input}"
-        st.session_state.chat_history.append(user_message)
+    # -------------------------------
+    # Chatbot Section (NeuroGuide)
+    # -------------------------------
+    if menu == "Chat with NeuroGuide":
+        st.header("🤖 NeuroGuide - Your Brainy Assistant")
 
-        # Get response from the model
-        bot_response = get_response(user_input)
-        st.session_state.chat_history.append(f"NeuroGuide: {bot_response}")
+        # User input field
+        user_input = st.text_input("Ask NeuroGuide anything...")
 
-        # Display the chat history
-        for message in st.session_state.chat_history:
-            st.write(message)
+        if user_input:
+            # Add user input to the chat history
+            user_message = f"User: {user_input}"
+            st.session_state.chat_history.append(user_message)
 
-# -------------------------------
-# Welcome & Instructions Section
-# -------------------------------
-elif menu == "Welcome & Instructions":
-    st.header("👋 Welcome to NeuroWheels!")
-    st.subheader("Your Personal NeuroCompanion")
+            # Get response from the model
+            bot_response = get_response(user_input)
+            st.session_state.chat_history.append(f"NeuroGuide: {bot_response}")
 
-    st.markdown("Hi there! I'm **NeuroGuide**, here to help you monitor, understand, and interact with your brain signals through our AI-powered assistant and signal viewer.")
-    
-    if st.button("🧾 Show My Info"):
-        with st.expander("Your Profile"):
-            st.write("**Name:** Mariam Kandari")
-            st.write("**Usage Type:** Caregiver / Researcher")
-            st.write("**Last Session:** April 17, 2025")
-            st.write("**Connected Device:** BITalino EEG Kit")
-            st.success("You're all set and connected!")
+            # Display the chat history
+            for message in st.session_state.chat_history:
+                st.write(message)
 
-    st.divider()
-    st.subheader("🛠 How to Use This App")
-    st.markdown("""
-    - 👉 **Chat with NeuroGuide**
-    - 📊 **Health Check-Ups**
-    - 🎯 **Unlock Features**
-    """)
+    # -------------------------------
+    # Welcome & Instructions Section
+    # -------------------------------
+    elif menu == "Welcome & Instructions":
+        st.header("👋 Welcome to NeuroWheels!")
+        st.subheader("Your Personal NeuroCompanion")
 
-# -------------------------------
-# View Brain Signals Section
-# -------------------------------
-elif menu == "View Brain Signals":
-    st.header("📊 Real-Time BioSignal Dashboard")
-    placeholder = st.empty()
+        st.markdown("Hi there! I'm **NeuroGuide**, here to help you monitor, understand, and interact with your brain signals through our AI-powered assistant and signal viewer.")
+        
+        if st.button("🧾 Show My Info"):
+            with st.expander("Your Profile"):
+                st.write("**Name:** Mariam Kandari")
+                st.write("**Usage Type:** Caregiver / Researcher")
+                st.write("**Last Session:** April 17, 2025")
+                st.write("**Connected Device:** BITalino EEG Kit")
+                st.success("You're all set and connected!")
 
-    for _ in range(100):
-        t = np.linspace(0, 2, 256)
-        brain_wave = np.sin(2 * np.pi * (10 + np.random.rand()) * t) + 0.3 * np.random.randn(len(t))
+        st.divider()
+        st.subheader("🛠 How to Use This App")
+        st.markdown("""
+        - 👉 **Chat with NeuroGuide**
+        - 📊 **Health Check-Ups**
+        - 🎯 **Unlock Features**
+        """)
 
-        heart_rate = np.random.randint(65, 100)
-        breathing_rate = np.random.randint(12, 20)
-        stress_level = np.random.uniform(0, 1)
-        overall_health = "Good" if stress_level < 0.6 else "Moderate" if stress_level < 0.8 else "Stressed"
+    # -------------------------------
+    # View Brain Signals Section
+    # -------------------------------
+    elif menu == "View Brain Signals":
+        st.header("📊 Real-Time BioSignal Dashboard")
+        placeholder = st.empty()
 
-        with placeholder.container():
-            st.subheader("🧠 Brainwave Signal")
-            brain_wave_df = pd.DataFrame({"Time (s)": t, "EEG": brain_wave})
-            st.line_chart(brain_wave_df.set_index("Time (s)"))
+        for _ in range(100):
+            t = np.linspace(0, 2, 256)
+            brain_wave = np.sin(2 * np.pi * (10 + np.random.rand()) * t) + 0.3 * np.random.randn(len(t))
 
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("❤️ Heart Rate", f"{heart_rate} bpm")
-            col2.metric("💨 Breathing", f"{breathing_rate} rpm")
-            col3.metric("😬 Stress", f"{stress_level:.2f}")
-            col4.metric("🧑‍⚕️ Health", overall_health)
+            heart_rate = np.random.randint(65, 100)
+            breathing_rate = np.random.randint(12, 20)
+            stress_level = np.random.uniform(0, 1)
+            overall_health = "Good" if stress_level < 0.6 else "Moderate" if stress_level < 0.8 else "Stressed"
 
-            st.info("⏳ Streaming live simulated data...")
+            with placeholder.container():
+                st.subheader("🧠 Brainwave Signal")
+                brain_wave_df = pd.DataFrame({"Time (s)": t, "EEG": brain_wave})
+                st.line_chart(brain_wave_df.set_index("Time (s)"))
 
-        time.sleep(0.1)
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("❤️ Heart Rate", f"{heart_rate} bpm")
+                col2.metric("💨 Breathing", f"{breathing_rate} rpm")
+                col3.metric("😬 Stress", f"{stress_level:.2f}")
+                col4.metric("🧑‍⚕️ Health", overall_health)
 
-# -------------------------------
-# Upgrade & Add-on Features Section
-# -------------------------------
-elif menu == "Upgrade & Add-ons":
-    st.header("💳 Upgrade to Premium & Add Features")
+                st.info("⏳ Streaming live simulated data...")
 
-    st.markdown("**Enjoy enhanced functionality by upgrading or adding hardware to your NeuroWheels experience.**")
+            time.sleep(0.1)
 
-    st.subheader("🧠 Premium Version")
-    upgrade = st.checkbox("Upgrade to Premium (5 KD)", value=False)
+    # -------------------------------
+    # Upgrade & Add-on Features Section
+    # -------------------------------
+    elif menu == "Upgrade & Add-ons":
+        st.header("💳 Upgrade to Premium & Add Features")
 
-    st.subheader("🛒 Additional Features")
-    buy_arm = st.checkbox("Add Robotic Arm (45 KD)", value=False)
-    buy_tablet = st.checkbox("Add Built-in Tablet (30 KD)", value=False)
+        st.markdown("**Enjoy enhanced functionality by upgrading or adding hardware to your NeuroWheels experience.**")
 
-    # Calculate total
-    total = 0
-    if upgrade:
-        total += 5
-    if buy_arm:
-        total += 45
-    if buy_tablet:
-        total += 30
+        st.subheader("🧠 Premium Version")
+        upgrade = st.checkbox("Upgrade to Premium (5 KD)", value=False)
 
-    st.divider()
+        st.subheader("🛒 Additional Features")
+        buy_arm = st.checkbox("Add Robotic Arm (45 KD)", value=False)
+        buy_tablet = st.checkbox("Add Built-in Tablet (30 KD)", value=False)
 
-    st.subheader("🧾 Order Summary")
-    if total == 0:
-        st.info("No upgrades or add-ons selected.")
-    else:
-        st.success(f"Total: {total} KD")
-        if st.button("Proceed to Payment"):
-            st.balloons()
-            st.success("Thank you! Your upgrades will be activated shortly.")
+        # Calculate total
+        total = 0
+        if upgrade:
+            total += 5
+        if buy_arm:
+            total += 45
+        if buy_tablet:
+            total += 30
+
+        st.divider()
+
+        st.subheader("🧾 Order Summary")
+        if total == 0:
+            st.info("No upgrades or add-ons selected.")
+        else:
+            st.success(f"Total: {total} KD")
+            if st.button("Proceed to Payment"):
+                st.balloons()
+                st.success("Thank you! Your upgrades will be activated shortly.")
