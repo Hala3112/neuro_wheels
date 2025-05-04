@@ -22,15 +22,15 @@ USER_DATA_PATH = "user_data.json"
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
+# Initialize device (CUDA or CPU)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 # Load the pre-trained GPT-2 model and tokenizer
-model = GPT2LMHeadModel.from_pretrained("gpt2")
+model = GPT2LMHeadModel.from_pretrained("gpt2").to(device)
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-# Function to generate a doctor-like, friendly response
 def get_response(user_input):
-    # Use the device (either CPU or GPU if available)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+    # Define the doctor prompt
     doctor_prompt = (
         "You are a compassionate and professional doctor helping individuals with mobility impairments. "
         "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
@@ -38,28 +38,22 @@ def get_response(user_input):
         "needs encouragement and practical advice. "
     )
 
-    # Combine the doctor-like instructions with the user's input
+    # Combine the doctor prompt with the user input
     full_input = doctor_prompt + user_input
 
-    # Encode the input text into tokens
+    # Tokenize the input and move it to the correct device
     inputs = tokenizer(full_input, return_tensors="pt").to(device)
 
-    # Generate a response from the model
+    # Generate a response
     with torch.no_grad():
         outputs = model.generate(
-            inputs['input_ids'],
+            inputs['input_ids'], 
             max_length=200,
-            num_return_sequences=1,
-            no_repeat_ngram_size=3,
-            top_p=0.92,
-            temperature=0.7,
-            do_sample=True
+            num_return_sequences=1
         )
 
-    # Decode the output tokens to text
+    # Decode and clean the response
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-    # Clean up the response (remove the doctor prompt)
     response = response.replace(doctor_prompt, "").strip()
 
     return response
