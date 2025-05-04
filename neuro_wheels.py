@@ -10,6 +10,9 @@ Original file is located at
 
 
 import streamlit as st
+import numpy as np
+import time
+import pandas as pd
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 # Load the pre-trained GPT-2 model and tokenizer
@@ -89,6 +92,7 @@ elif menu == "Welcome & Instructions":
     st.subheader("Your Personal NeuroCompanion")
 
     st.markdown("Hi there! I'm **NeuroGuide**, here to help you monitor, understand, and interact with your brain signals through our AI-powered assistant and signal viewer.")
+    
     if st.button("🧾 Show My Info"):
         with st.expander("Your Profile"):
             st.write("**Name:** Mariam Kandari")
