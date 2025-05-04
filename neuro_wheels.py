@@ -27,7 +27,7 @@ tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
 # Set device to GPU if available, else CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
+model.to(device)  # Ensure the model is moved to the correct device
 
 # Function to generate a doctor-like, friendly response
 def get_response(user_input):
@@ -41,7 +41,7 @@ def get_response(user_input):
     # Combine the doctor-like instructions with the user's input
     full_input = doctor_prompt + user_input
 
-    # Tokenize the input text
+    # Tokenize the input text and ensure it is moved to the correct device
     inputs = tokenizer(full_input, return_tensors="pt", truncation=True, max_length=1024).to(device)
 
     # Generate a response from the model
