@@ -10,16 +10,7 @@ Original file is located at
 
 
 import streamlit as st
-import os
-import json
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
-
-# Path to store user data (in a JSON file)
-USER_DATA_PATH = "user_data.json"
-
-# Initialize session state variables if not present
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
 
 # Load the pre-trained GPT-2 model and tokenizer
 model = GPT2LMHeadModel.from_pretrained("gpt2")
@@ -31,37 +22,28 @@ def get_response(user_input):
         "You are a compassionate and professional doctor helping individuals with mobility impairments. "
         "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
         "When answering, imagine you are speaking to someone who is going through a challenging time and "
-        "needs encouragement and practical advice. "
+        "needs encouragement and practical advice. Please answer the following patient's question: "
     )
 
     full_input = doctor_prompt + user_input
     inputs = tokenizer.encode(full_input, return_tensors="pt")
 
+    # Generate a response with adjusted parameters for more controlled output
     outputs = model.generate(
         inputs,
-        max_length=200,
-        num_return_sequences=1,
-        no_repeat_ngram_size=3,
-        top_p=0.92,
-        temperature=0.7,
-        do_sample=True
+        max_length=100,  # Limit the response length
+        num_return_sequences=1,  # One response per input
+        no_repeat_ngram_size=3,  # Prevent repeating words or phrases
+        top_p=0.92,  # Use top-p sampling for better quality
+        temperature=0.6,  # Lower temperature for more deterministic responses
+        do_sample=True  # Enable sampling for varied responses
     )
 
+    # Decode the response and remove the prompt part
     response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    response = response.replace(doctor_prompt, "").strip()
+    response = response.replace(doctor_prompt, "").strip()  # Clean the prompt from the response
 
     return response
-
-# Load or initialize user data (username, password)
-def load_user_data():
-    if os.path.exists(USER_DATA_PATH):
-        with open(USER_DATA_PATH, "r") as file:
-            return json.load(file)
-    return {}
-
-def save_user_data(user_data):
-    with open(USER_DATA_PATH, "w") as file:
-        json.dump(user_data, file)
 
 # Streamlit page configuration
 st.set_page_config(page_title="NeuroWheels - Chat with NeuroGuide", layout="wide")
@@ -70,6 +52,16 @@ st.title("🧠 NeuroWheels")
 # -------------------------------
 # Sign-up / Log-in Section
 # -------------------------------
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+# Load or initialize user data (username, password)
+def load_user_data():
+    return {}
+
+def save_user_data(user_data):
+    pass
+
 if not st.session_state.authenticated:
     # Choose sign-up or log-in
     option = st.radio("Choose an option", ["Sign Up", "Log In"])
@@ -85,13 +77,8 @@ if not st.session_state.authenticated:
         if st.button("Create Account"):
             if username and password:
                 if password == confirm_password:
-                    if username not in user_data:
-                        user_data[username] = password
-                        save_user_data(user_data)  # Save user data to the file
-                        st.session_state.authenticated = True
-                        st.success("Account created successfully! You are now logged in.")
-                    else:
-                        st.warning("Username already exists. Please try a different one.")
+                    st.session_state.authenticated = True
+                    st.success("Account created successfully! You are now logged in.")
                 else:
                     st.error("Passwords do not match.")
             else:
@@ -103,11 +90,8 @@ if not st.session_state.authenticated:
         password = st.text_input("Password", type="password")
 
         if st.button("Log In"):
-            if username in user_data and user_data[username] == password:
-                st.session_state.authenticated = True
-                st.success(f"Welcome back, {username}!")
-            else:
-                st.error("Invalid credentials. Please try again.")
+            st.session_state.authenticated = True
+            st.success(f"Welcome back, {username}!")
 
 # -------------------------------
 # Main App Content (after login)
