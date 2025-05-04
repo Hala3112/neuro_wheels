@@ -7,9 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1PdC8uc28kz6-bvF2JUWaNg2OL6qqi2ob
 """
 
-!pip install streamlit
 
-pip install transformers
 
 import streamlit as st
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
