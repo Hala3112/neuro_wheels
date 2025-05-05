@@ -150,10 +150,10 @@ if st.session_state.authenticated:
         st.markdown("Hi there! I'm **NeuroGuide**, here to help you monitor, understand, and interact with your brain signals through our AI-powered assistant and signal viewer.")
        
         if st.button("🧾 Show My Info"):
-            with st.expander("Your Profile"):
-                st.write("**Name:** Mariam Kandari")
-                st.write("**Usage Type:** Caregiver / Researcher")
-                st.write("**Last Session:** April 17, 2025")
+            with st.expander("AI Assistance App, implemented by Group 4"):
+                st.write("**Name:** Hala Farfoura|Mariam Kandari|Rawan Saleem|Shahad Alabwah|Fajer Almanaye")
+                st.write("**Usage Type:** Researcher")
+                st.write("**Last Session:** May 8, 2025")
                 st.write("**Connected Device:** BITalino EEG Kit")
                 st.success("You're all set and connected!")
 
