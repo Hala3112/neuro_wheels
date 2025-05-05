@@ -8,52 +8,56 @@ Original file is located at
 """
 
 
+
 import streamlit as st
-from transformers import AutoTokenizer, AutoModelForCausalLM
+import os
+import json
+import numpy as np
+import pandas as pd
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+import torch
+import time
+
+import streamlit as st
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
 
-# Load the model and tokenizer
+# Load the GPT-2 model and tokenizer
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-ckpt = "google/gemma-3-1b-pt"  # This is an example model, use the right model path
-tokenizer = AutoTokenizer.from_pretrained(ckpt)
-model = AutoModelForCausalLM.from_pretrained(ckpt, torch_dtype=torch.bfloat16, device_map="auto").to(device)
+model = GPT2LMHeadModel.from_pretrained("gpt2").to(device)
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-# Function to generate a more structured response
+# Set padding token
+tokenizer.pad_token = tokenizer.eos_token  # Use EOS token as padding token
+
 def get_response(user_input):
-    # Specific prompt with step-by-step reasoning
-    prompt = """
-    You are an AI assistant designed to answer simple questions.
-    Please restrict your answer to the exact question asked.
-    Think step by step, use careful reasoning.
-    Question: {question}
-    Answer:
-    """
+    doctor_prompt = (
+        "You are a compassionate and professional doctor helping individuals with mobility impairments. "
+        "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
+        "When answering, imagine you are speaking to someone who is going through a challenging time and "
+        "needs encouragement and practical advice. "
+    )
 
-    # Format the prompt with the user's input
-    formatted_prompt = prompt.format(question=user_input)
+    full_input = doctor_prompt + user_input
+    inputs = tokenizer(full_input, return_tensors="pt", truncation=True, padding=True, max_length=1024)
+    input_ids = inputs['input_ids'].to(device)
 
-    # Tokenize the formatted prompt
-    model_inputs = tokenizer(formatted_prompt, return_tensors="pt").to(device)
-    input_len = model_inputs["input_ids"].shape[-1]
+    try:
+        with torch.no_grad():
+            outputs = model.generate(input_ids, max_length=150, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
+        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        response = response.replace(doctor_prompt, "").strip()
+        return response
+    except Exception as e:
+        st.error(f"Error generating response: {e}")
+        return "Sorry, something went wrong. Please try again."
 
-    # Generate the response using the model
-    with torch.no_grad():
-        generation = model.generate(**model_inputs, temperature=0.5, max_length=256, do_sample=True)
-        generation = generation[0][input_len:]
-
-    # Decode and return the response
-    response = tokenizer.decode(generation, skip_special_tokens=True)
-    return response
-
-# Main function to display the chat interface
 def show_chat_page():
-    st.title("🧠 NeuroGuide - Your Brainy Assistant")
-
-    # User input section
+    st.header("🤖 NeuroGuide - Your Brainy Assistant")
     user_input = st.text_input("Ask NeuroGuide anything...")
 
     if user_input:
-        # Get the model's response based on the structured prompt
+        # Get response from the model
         bot_response = get_response(user_input)
         st.write(f"User: {user_input}")
         st.write(f"NeuroGuide: {bot_response}")
