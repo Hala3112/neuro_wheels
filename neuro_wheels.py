@@ -47,7 +47,7 @@ def get_response(user_input):
 
     try:
         with torch.no_grad():
-            outputs = model.generate(input_ids, max_length=150, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
+            outputs = model.generate(input_ids, max_length=1150, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
         response = tokenizer.decode(outputs[0], skip_special_tokens=True)
         response = response.replace(doctor_prompt, "").strip()
         return response
