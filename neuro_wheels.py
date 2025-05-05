@@ -21,11 +21,11 @@ USER_DATA_PATH = "user_data.json"
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
-# Load the pre-trained GPT-2 model and tokenizer
-model = GPT2LMHeadModel.from_pretrained("gpt2")
+# Load model and tokenizer outside of function to optimize performance
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = GPT2LMHeadModel.from_pretrained("gpt2").to(device)
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-# Function to generate a doctor-like, friendly response
 def get_response(user_input):
     doctor_prompt = (
         "You are a compassionate and professional doctor helping individuals with mobility impairments. "
@@ -34,31 +34,28 @@ def get_response(user_input):
         "needs encouragement and practical advice. "
     )
 
-    # Combine the doctor-like instructions with the user's input
     full_input = doctor_prompt + user_input
+    inputs = tokenizer(full_input, return_tensors="pt", truncation=True, padding=True, max_length=1024)
+    input_ids = inputs['input_ids'].to(device)
 
-    # Encode the input text into tokens
-    inputs = tokenizer(full_input, return_tensors="pt")
-
-    # Generate a response from the model
-    with torch.no_grad():
-        outputs = model.generate(
-            inputs['input_ids'],
-            max_length=200,
-            num_return_sequences=1,
-            no_repeat_ngram_size=3,
-            top_p=0.92,
-            temperature=0.7,
-            do_sample=True
-        )
-
-    # Decode the output tokens to text
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-    # Clean up the response (remove the doctor prompt)
-    response = response.replace(doctor_prompt, "").strip()
-
-    return response
+    try:
+        with torch.no_grad():
+            # Generate the response using model.generate()
+            outputs = model.generate(
+                input_ids,
+                max_length=150,  # Limit the length of response
+                num_return_sequences=1,
+                no_repeat_ngram_size=3,
+                top_p=0.92,
+                temperature=0.7,
+                do_sample=True
+            )
+        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        response = response.replace(doctor_prompt, "").strip()  # Remove the prompt part from the response
+        return response
+    except Exception as e:
+        st.error(f"Error generating response: {e}")
+        return "Sorry, something went wrong. Please try again."
 
 # Load or initialize user data (username, password)
 def load_user_data():
