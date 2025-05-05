@@ -11,8 +11,11 @@ Original file is located at
 import streamlit as st
 import os
 import json
+import numpy as np
+import pandas as pd
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
+import time
 
 # Path to store user data (in a JSON file)
 USER_DATA_PATH = "user_data.json"
@@ -35,15 +38,27 @@ def get_response(user_input):
     )
 
     full_input = doctor_prompt + user_input
-    inputs = tokenizer(full_input, return_tensors="pt", truncation=True, padding=True, max_length=1024)
+
+    # Ensure full_input is a string
+    if not isinstance(full_input, str):
+        raise ValueError("Input must be a string.")
+
+    # Truncate long inputs
+    if len(full_input) > 1024:
+        full_input = full_input[:1024]  # Truncate if too long
+
+    # Clean the input to remove any unwanted characters
+    full_input = full_input.strip()
+
+    # Tokenize and generate the response
+    inputs = tokenizer(full_input, return_tensors="pt", truncation=True, padding=True, max_length=1024, text_pair=None)
     input_ids = inputs['input_ids'].to(device)
 
     try:
         with torch.no_grad():
-            # Generate the response using model.generate()
             outputs = model.generate(
                 input_ids,
-                max_length=150,  # Limit the length of response
+                max_length=150,  # Limit response length
                 num_return_sequences=1,
                 no_repeat_ngram_size=3,
                 top_p=0.92,
@@ -184,7 +199,8 @@ if st.session_state.authenticated:
         placeholder = st.empty()
 
         for _ in range(100):
-            t = np.linspace(0, 2, 256)
+            # Generate simulated EEG signal
+            t = np.linspace(0, 2, 256)  # Time from 0 to 2 seconds, 256 samples
             brain_wave = np.sin(2 * np.pi * (10 + np.random.rand()) * t) + 0.3 * np.random.randn(len(t))
 
             heart_rate = np.random.randint(65, 100)
