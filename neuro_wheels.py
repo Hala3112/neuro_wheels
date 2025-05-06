@@ -11,15 +11,18 @@ import streamlit as st
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
 
-# Load the GPT-2 model and tokenizer
+# Check if GPU is available, otherwise fallback to CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Load the GPT-2 model and tokenizer
 model = GPT2LMHeadModel.from_pretrained("gpt2").to(device)  # Move model to appropriate device
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-# Set padding token
+# Set padding token (necessary for some models)
 tokenizer.pad_token = tokenizer.eos_token  # Use EOS token as padding token
 
 def get_response(user_input):
+    # Define the prompt for the chatbot
     doctor_prompt = (
         "You are a compassionate and professional doctor helping individuals with mobility impairments. "
         "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
@@ -33,11 +36,13 @@ def get_response(user_input):
     input_ids = inputs['input_ids'].to(device)
 
     try:
-        with torch.no_grad():
+        with torch.no_grad():  # Turn off gradients as we don't need them for inference
             outputs = model.generate(input_ids, max_length=1150, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
+        
         response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        response = response.replace(doctor_prompt, "").strip()
+        response = response.replace(doctor_prompt, "").strip()  # Clean up the response
         return response
+    
     except Exception as e:
         st.error(f"Error generating response: {e}")
         return "Sorry, something went wrong. Please try again."
