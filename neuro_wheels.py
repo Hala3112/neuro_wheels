@@ -7,8 +7,6 @@ Original file is located at
     https://colab.research.google.com/drive/1PdC8uc28kz6-bvF2JUWaNg2OL6qqi2ob
 """
 
-
-
 import streamlit as st
 import os
 import json
@@ -27,7 +25,7 @@ if "authenticated" not in st.session_state:
 
 # Load the GPT-2 model and tokenizer
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = GPT2LMHeadModel.from_pretrained("gpt2").to(device)
+model = GPT2LMHeadModel.from_pretrained("gpt2").to_empty(device)  # Use .to_empty() instead of .to(device)
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
 # Set padding token
@@ -35,13 +33,12 @@ tokenizer.pad_token = tokenizer.eos_token  # Use EOS token as padding token
 
 def get_response(user_input):
     doctor_prompt = (
-    "You are a compassionate and professional doctor helping individuals with mobility impairments. "
-    "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
-    "When answering, imagine you are speaking to someone who is going through a challenging time and needs encouragement and practical advice. "
-    "If the user asks about a specific health condition, provide actionable steps, recommendations, or techniques that could help them manage or assess their condition, "
-    "tailored to their situation."
-)
-
+        "You are a compassionate and professional doctor helping individuals with mobility impairments. "
+        "Your responses should always be readable, calming, supportive, and kind, with a focus on patient care. "
+        "When answering, imagine you are speaking to someone who is going through a challenging time and needs encouragement and practical advice. "
+        "If the user asks about a specific health condition, provide actionable steps, recommendations, or techniques that could help them manage or assess their condition, "
+        "tailored to their situation."
+    )
 
     full_input = doctor_prompt + user_input
     inputs = tokenizer(full_input, return_tensors="pt", truncation=True, padding=True, max_length=1024)
@@ -49,7 +46,7 @@ def get_response(user_input):
 
     try:
         with torch.no_grad():
-            outputs = model.generate(input_ids, max_length=1150, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
+            outputs = model.generate(input_ids, max_length=850, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
         response = tokenizer.decode(outputs[0], skip_special_tokens=True)
         response = response.replace(doctor_prompt, "").strip()
         return response
