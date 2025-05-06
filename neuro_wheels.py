@@ -8,48 +8,124 @@ Original file is located at
 """
 
 import streamlit as st
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
-import torch
+import numpy as np
+import time
+import pandas as pd
 
-# Load the GPT-2 model and tokenizer
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = GPT2LMHeadModel.from_pretrained("gpt2").to(device)
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-# Set padding token
-tokenizer.pad_token = tokenizer.eos_token  # Use EOS token as padding token
+st.set_page_config(page_title="NeuroWheels", layout="wide")
 
-def get_response(user_input):
-    doctor_prompt = (
-        "You are a compassionate and professional doctor helping individuals with mobility impairments. "
-        "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
-        "When answering, imagine you are speaking to someone who is going through a challenging time and "
-        "needs encouragement and practical advice. "
-    )
+# App title
+st.title("🧠 NeuroWheels")
 
-    full_input = doctor_prompt + user_input
-    inputs = tokenizer(full_input, return_tensors="pt", truncation=True, padding=True, max_length=1024)
-    input_ids = inputs['input_ids'].to(device)
+# Sidebar menu
+menu = st.sidebar.selectbox("Navigate", [
+    "Welcome & Instructions",
+    "Chat with NeuroGuide",
+    "View Brain Signals",
+    "Upgrade & Add-ons"
+])
 
-    try:
-        with torch.no_grad():
-            outputs = model.generate(input_ids, max_length=150, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
-        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        response = response.replace(doctor_prompt, "").strip()
-        return response
-    except Exception as e:
-        st.error(f"Error generating response: {e}")
-        return "Sorry, something went wrong. Please try again."
+# Session state for chat
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
-def show_chat_page():
+# -------------------------------
+# 🧾 Welcome Screen + Instructions
+# -------------------------------
+if menu == "Welcome & Instructions":
+    st.header("👋 Welcome to NeuroWheels!")
+    st.subheader("Your Personal NeuroCompanion")
+
+    st.markdown("Hi there! I'm **NeuroGuide**, here to help you monitor, understand, and interact with your brain signals through our AI-powered assistant and signal viewer.")
+
+    if st.button("🧾 Show My Info"):
+        with st.expander("Your Profile"):
+            st.write("**Name:** Mariam Kandari")
+            st.write("**Usage Type:** Caregiver / Researcher")
+            st.write("**Last Session:** April 17, 2025")
+            st.write("**Connected Device:** BITalino EEG Kit")
+            st.success("You're all set and connected!")
+
+    st.divider()
+
+    st.subheader("🛠 How to Use This App")
+    st.markdown("""
+    - 👉 **Chat with NeuroGuide**
+    - 📊 **Health Check-Ups**
+    - 🎯 **Unlock Features**
+    """)
+
+# -------------------------------
+# 🤖 Chatbot Section (NeuroGuide)
+# -------------------------------
+elif menu == "Chat with NeuroGuide":
     st.header("🤖 NeuroGuide - Your Brainy Assistant")
-    user_input = st.text_input("Ask NeuroGuide anything...")
+    user_input = st.chat_input("Ask NeuroGuide anything...")
 
-    if user_input:
-        # Get response from the model
-        bot_response = get_response(user_input)
-        st.write(f"User: {user_input}")
-        st.write(f"NeuroGuide: {bot_response}")
 
-if __name__ == "__main__":
-    show_chat_page()
+# -------------------------------
+# 📈 Brain Signal Visualization
+# -------------------------------
+elif menu == "View Brain Signals":
+    st.header("📊 Real-Time BioSignal Dashboard")
+    placeholder = st.empty()
+
+    for _ in range(100):
+        t = np.linspace(0, 2, 256)
+        brain_wave = np.sin(2 * np.pi * (10 + np.random.rand()) * t) + 0.3 * np.random.randn(len(t))
+
+        heart_rate = np.random.randint(65, 100)
+        breathing_rate = np.random.randint(12, 20)
+        stress_level = np.random.uniform(0, 1)
+        overall_health = "Good" if stress_level < 0.6 else "Moderate" if stress_level < 0.8 else "Stressed"
+
+        with placeholder.container():
+            st.subheader("🧠 Brainwave Signal")
+            brain_wave_df = pd.DataFrame({"Time (s)": t, "EEG": brain_wave})
+            st.line_chart(brain_wave_df.set_index("Time (s)"))
+
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("❤️ Heart Rate", f"{heart_rate} bpm")
+            col2.metric("💨 Breathing", f"{breathing_rate} rpm")
+            col3.metric("😬 Stress", f"{stress_level:.2f}")
+            col4.metric("🧑‍⚕️ Health", overall_health)
+
+            st.info("⏳ Streaming live simulated data...")
+
+        time.sleep(0.1)
+
+# -------------------------------
+# 💳 Upgrade & Add-on Features
+# -------------------------------
+elif menu == "Upgrade & Add-ons":
+    st.header("💳 Upgrade to Premium & Add Features")
+
+    st.markdown("**Enjoy enhanced functionality by upgrading or adding hardware to your NeuroWheels experience.**")
+
+    st.subheader("🧠 Premium Version")
+    upgrade = st.checkbox("Upgrade to Premium (5 KD)", value=False)
+
+    st.subheader("🛒 Additional Features")
+    buy_arm = st.checkbox("Add Robotic Arm (45 KD)", value=False)
+    buy_tablet = st.checkbox("Add Built-in Tablet (30 KD)", value=False)
+
+    # Calculate total
+    total = 0
+    if upgrade:
+        total += 5
+    if buy_arm:
+        total += 45
+    if buy_tablet:
+        total += 30
+
+    st.divider()
+
+    st.subheader("🧾 Order Summary")
+    if total == 0:
+        st.info("No upgrades or add-ons selected.")
+    else:
+        st.success(f"Total: {total} KD")
+        if st.button("Proceed to Payment"):
+            st.balloons()
+            st.success("Thank you! Your upgrades will be activated shortly.")
