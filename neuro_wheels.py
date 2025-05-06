@@ -25,7 +25,7 @@ if "authenticated" not in st.session_state:
 
 # Load the GPT-2 model and tokenizer
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = GPT2LMHeadModel.from_pretrained("gpt2").to_empty(device)  # Use .to_empty() instead of .to(device)
+model = GPT2LMHeadModel.from_pretrained("gpt2").to(device)  # use.to(device)
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
 # Set padding token
