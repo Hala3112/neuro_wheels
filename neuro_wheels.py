@@ -7,14 +7,6 @@ Original file is located at
     https://colab.research.google.com/drive/1PdC8uc28kz6-bvF2JUWaNg2OL6qqi2ob
 """
 
-import streamlit as st
-import os
-import json
-import numpy as np
-import pandas as pd
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
-import torch
-import time
 
 import streamlit as st
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
