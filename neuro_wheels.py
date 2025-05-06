@@ -18,12 +18,9 @@ from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
 import time
 
-# Path to store user data (in a JSON file)
-USER_DATA_PATH = "user_data.json"
-
-# Initialize session state variables if not present
-if "authenticated" not in st.session_state:
-    st.session_state.authenticated = False
+import streamlit as st
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+import torch
 
 # Load the GPT-2 model and tokenizer
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -35,13 +32,11 @@ tokenizer.pad_token = tokenizer.eos_token  # Use EOS token as padding token
 
 def get_response(user_input):
     doctor_prompt = (
-    "You are a compassionate and professional doctor helping individuals with mobility impairments. "
-    "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
-    "When answering, imagine you are speaking to someone who is going through a challenging time and needs encouragement and practical advice. "
-    "If the user asks about a specific health condition, provide actionable steps, recommendations, or techniques that could help them manage or assess their condition, "
-    "tailored to their situation."
-)
-
+        "You are a compassionate and professional doctor helping individuals with mobility impairments. "
+        "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
+        "When answering, imagine you are speaking to someone who is going through a challenging time and "
+        "needs encouragement and practical advice. "
+    )
 
     full_input = doctor_prompt + user_input
     inputs = tokenizer(full_input, return_tensors="pt", truncation=True, padding=True, max_length=1024)
@@ -49,7 +44,7 @@ def get_response(user_input):
 
     try:
         with torch.no_grad():
-            outputs = model.generate(input_ids, max_length=1150, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
+            outputs = model.generate(input_ids, max_length=150, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
         response = tokenizer.decode(outputs[0], skip_special_tokens=True)
         response = response.replace(doctor_prompt, "").strip()
         return response
@@ -57,177 +52,73 @@ def get_response(user_input):
         st.error(f"Error generating response: {e}")
         return "Sorry, something went wrong. Please try again."
 
-# Load or initialize user data (username, password)
-def load_user_data():
-    if os.path.exists(USER_DATA_PATH):
-        with open(USER_DATA_PATH, "r") as file:
-            return json.load(file)
-    return {}
+def show_chat_page():
+    st.header("🤖 NeuroGuide - Your Brainy Assistant")
+    user_input = st.text_input("Ask NeuroGuide anything...")
 
-def save_user_data(user_data):
-    with open(USER_DATA_PATH, "w") as file:
-        json.dump(user_data, file)
+    if user_input:
+        # Get response from the model
+        bot_response = get_response(user_input)
+        st.write(f"User: {user_input}")
+        st.write(f"NeuroGuide: {bot_response}")
 
-# Streamlit page configuration
-st.set_page_config(page_title="NeuroWheels - Chat with NeuroGuide", layout="wide")
-st.title("🧠 NeuroWheels")
+if __name__ == "__main__":
+    show_chat_page()
 
-# -------------------------------
-# Sign-up / Log-in Section
-# -------------------------------
-if not st.session_state.authenticated:
-    # Choose sign-up or log-in
-    option = st.radio("Choose an option", ["Sign Up", "Log In"])
 
-    user_data = load_user_data()  # Load existing user data
 
-    if option == "Sign Up":
-        st.subheader("Sign Up")
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        confirm_password = st.text_input("Confirm Password", type="password")
+import streamlit as st
+import os
+import json
+import numpy as np
+import pandas as pd
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+import torch
+import time
 
-        if st.button("Create Account"):
-            if username and password:
-                if password == confirm_password:
-                    if username not in user_data:
-                        user_data[username] = password
-                        save_user_data(user_data)  # Save user data to the file
-                        st.session_state.authenticated = True
-                        st.success("Account created successfully! You are now logged in.")
-                    else:
-                        st.warning("Username already exists. Please try a different one.")
-                else:
-                    st.error("Passwords do not match.")
-            else:
-                st.error("Please fill in both username and password.")
+import streamlit as st
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+import torch
 
-    elif option == "Log In":
-        st.subheader("Log In")
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
+# Load the GPT-2 model and tokenizer
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = GPT2LMHeadModel.from_pretrained("gpt2").to(device)
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-        if st.button("Log In"):
-            if username in user_data and user_data[username] == password:
-                st.session_state.authenticated = True
-                st.success(f"Welcome back, {username}!")
-            else:
-                st.error("Invalid credentials. Please try again.")
+# Set padding token
+tokenizer.pad_token = tokenizer.eos_token  # Use EOS token as padding token
 
-# -------------------------------
-# Main App Content (after login)
-# -------------------------------
-if st.session_state.authenticated:
-    menu = st.sidebar.selectbox("Navigate", [
-        "Welcome & Instructions",
-        "Chat with NeuroGuide",
-        "View Brain Signals",
-        "Upgrade & Add-ons"
-    ])
+def get_response(user_input):
+    doctor_prompt = (
+        "You are a compassionate and professional doctor helping individuals with mobility impairments. "
+        "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
+        "When answering, imagine you are speaking to someone who is going through a challenging time and "
+        "needs encouragement and practical advice. "
+    )
 
-    # -------------------------------
-    # Chatbot Section (NeuroGuide)
-    # -------------------------------
-    if menu == "Chat with NeuroGuide":
-        st.header("🤖 NeuroGuide - Your Brainy Assistant")
+    full_input = doctor_prompt + user_input
+    inputs = tokenizer(full_input, return_tensors="pt", truncation=True, padding=True, max_length=1024)
+    input_ids = inputs['input_ids'].to(device)
 
-        # User input field
-        user_input = st.text_input("Ask NeuroGuide anything...")
+    try:
+        with torch.no_grad():
+            outputs = model.generate(input_ids, max_length=150, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
+        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        response = response.replace(doctor_prompt, "").strip()
+        return response
+    except Exception as e:
+        st.error(f"Error generating response: {e}")
+        return "Sorry, something went wrong. Please try again."
 
-        if user_input:
-            # Get response from the model
-            bot_response = get_response(user_input)
-            st.write(f"User: {user_input}")
-            st.write(f"NeuroGuide: {bot_response}")
+def show_chat_page():
+    st.header("🤖 NeuroGuide - Your Brainy Assistant")
+    user_input = st.text_input("Ask NeuroGuide anything...")
 
-    # -------------------------------
-    # Welcome & Instructions Section
-    # -------------------------------
-    elif menu == "Welcome & Instructions":
-        st.header("👋 Welcome to NeuroWheels!")
-        st.subheader("Your Personal NeuroCompanion")
+    if user_input:
+        # Get response from the model
+        bot_response = get_response(user_input)
+        st.write(f"User: {user_input}")
+        st.write(f"NeuroGuide: {bot_response}")
 
-        st.markdown("Hi there! I'm **NeuroGuide**, here to help you monitor, understand, and interact with your brain signals through our AI-powered assistant and signal viewer.")
-       
-        if st.button("🧾 Show My Info"):
-            with st.expander("AI Assistance App, implemented by Group 4"):
-                st.write("**Name:** Hala Farfoura|Mariam Kandari|Rawan Saleem|Shahad Alabwah|Fajer Almanaye")
-                st.write("**Usage Type:** Researcher")
-                st.write("**Last Session:** May 8, 2025")
-                st.write("**Connected Device:** BITalino EEG Kit")
-                st.success("You're all set and connected!")
-
-        st.divider()
-        st.subheader("🛠 How to Use This App")
-        st.markdown("""
-        - 👉 **Chat with NeuroGuide: Your Dr.**
-        - 📊 **Health Check-Ups**
-        - 🎯 **Unlock Features**
-        """)
-
-    # -------------------------------
-    # View Brain Signals Section
-    # -------------------------------
-    elif menu == "View Brain Signals":
-        st.header("📊 Real-Time BioSignal Dashboard")
-        placeholder = st.empty()
-
-        for _ in range(100):
-            # Generate simulated EEG signal
-            t = np.linspace(0, 2, 256)  # Time from 0 to 2 seconds, 256 samples
-            brain_wave = np.sin(2 * np.pi * (10 + np.random.rand()) * t) + 0.3 * np.random.randn(len(t))
-
-            heart_rate = np.random.randint(65, 100)
-            breathing_rate = np.random.randint(12, 20)
-            stress_level = np.random.uniform(0, 1)
-            overall_health = "Good" if stress_level < 0.6 else "Moderate" if stress_level < 0.8 else "Stressed"
-
-            with placeholder.container():
-                st.subheader("🧠 Brainwave Signal")
-                brain_wave_df = pd.DataFrame({"Time (s)": t, "EEG": brain_wave})
-                st.line_chart(brain_wave_df.set_index("Time (s)"))
-
-                col1, col2, col3, col4 = st.columns(4)
-                col1.metric("❤️ Heart Rate", f"{heart_rate} bpm")
-                col2.metric("💨 Breathing", f"{breathing_rate} rpm")
-                col3.metric("😬 Stress", f"{stress_level:.2f}")
-                col4.metric("🧑‍⚕️ Health", overall_health)
-
-                st.info("⏳ Streaming live simulated data...")
-
-            time.sleep(0.1)
-
-    # -------------------------------
-    # Upgrade & Add-on Features Section
-    # -------------------------------
-    elif menu == "Upgrade & Add-ons":
-        st.header("💳 Upgrade to Premium & Add Features")
-
-        st.markdown("**Enjoy enhanced functionality by upgrading or adding hardware to your NeuroWheels experience.**")
-
-        st.subheader("🧠 Premium Version")
-        upgrade = st.checkbox("Upgrade to Premium (5 KD)", value=False)
-
-        st.subheader("🛒 Additional Features")
-        buy_arm = st.checkbox("Add Robotic Arm (45 KD)", value=False)
-        buy_tablet = st.checkbox("Add Built-in Tablet (30 KD)", value=False)
-
-        # Calculate total
-        total = 0
-        if upgrade:
-            total += 5
-        if buy_arm:
-            total += 45
-        if buy_tablet:
-            total += 30
-
-        st.divider()
-
-        st.subheader("🧾 Order Summary")
-        if total == 0:
-            st.info("No upgrades or add-ons selected.")
-        else:
-            st.success(f"Total: {total} KD")
-            if st.button("Proceed to Payment"):
-                st.balloons()
-                st.success("Thank you! Your upgrades will be activated shortly.")
+if __name__ == "__main__":
+    show_chat_page()
