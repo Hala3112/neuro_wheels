@@ -10,11 +10,8 @@ Original file is located at
 import streamlit as st
 import os
 import json
-import numpy as np
-import pandas as pd
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
-import time
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
 
 # Path to store user data (in a JSON file)
 USER_DATA_PATH = "user_data.json"
@@ -23,33 +20,39 @@ USER_DATA_PATH = "user_data.json"
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 
-# Load the GPT-2 model and tokenizer
+# Check if GPU is available, otherwise fallback to CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = GPT2LMHeadModel.from_pretrained("gpt2").to(device)
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+
+# Load GPT-2 model and tokenizer from local files (download and place them in the `./models/gpt2/` directory)
+model = GPT2LMHeadModel.from_pretrained("./models/gpt2").to(device)
+tokenizer = GPT2Tokenizer.from_pretrained("./models/gpt2")
 
 # Set padding token
 tokenizer.pad_token = tokenizer.eos_token  # Use EOS token as padding token
 
 def get_response(user_input):
     doctor_prompt = (
-    "You are a compassionate and professional doctor helping individuals with mobility impairments. "
-    "Your responses should always be readable calming, supportive, and kind, with a focus on patient care. "
-    "When answering, imagine you are speaking to someone who is going through a challenging time and needs encouragement and practical advice. "
-    "If the user asks about a specific health condition, provide actionable steps, recommendations, or techniques that could help them manage or assess their condition, "
-    "tailored to their situation."
-)
+        "You are a compassionate and professional doctor helping individuals with mobility impairments. "
+        "Your responses should always be readable, calming, supportive, and kind, with a focus on patient care. "
+        "When answering, imagine you are speaking to someone who is going through a challenging time and needs encouragement and practical advice. "
+        "If the user asks about a specific health condition, provide actionable steps, recommendations, or techniques that could help them manage or assess their condition, "
+        "tailored to their situation."
+    )
 
-
+    # Create the full input to the model
     full_input = doctor_prompt + user_input
+
+    # Tokenize input
     inputs = tokenizer(full_input, return_tensors="pt", truncation=True, padding=True, max_length=1024)
     input_ids = inputs['input_ids'].to(device)
 
     try:
+        # Use torch.no_grad() to avoid gradients computation during inference (important for efficiency)
         with torch.no_grad():
             outputs = model.generate(input_ids, max_length=850, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
+        
         response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        response = response.replace(doctor_prompt, "").strip()
+        response = response.replace(doctor_prompt, "").strip()  # Remove the doctor prompt from the response
         return response
     except Exception as e:
         st.error(f"Error generating response: {e}")
