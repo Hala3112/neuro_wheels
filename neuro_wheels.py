@@ -8,27 +8,32 @@ Original file is located at
 """
 
 import streamlit as st
+import os
+import json
+import numpy as np
+import pandas as pd
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+import torch
+import time
+
+import streamlit as st
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 import torch
 
-# Check if GPU is available, otherwise fallback to CPU
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 # Load the GPT-2 model and tokenizer
-model = GPT2LMHeadModel.from_pretrained("gpt2").to(device)  # Move model to appropriate device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = GPT2LMHeadModel.from_pretrained("gpt2").to(device)
 tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
-# Set padding token (necessary for some models)
+# Set padding token
 tokenizer.pad_token = tokenizer.eos_token  # Use EOS token as padding token
 
 def get_response(user_input):
-    # Define the prompt for the chatbot
     doctor_prompt = (
         "You are a compassionate and professional doctor helping individuals with mobility impairments. "
         "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
-        "When answering, imagine you are speaking to someone who is going through a challenging time and needs encouragement and practical advice. "
-        "If the user asks about a specific health condition, provide actionable steps, recommendations, or techniques that could help them manage or assess their condition, "
-        "tailored to their situation."
+        "When answering, imagine you are speaking to someone who is going through a challenging time and "
+        "needs encouragement and practical advice. "
     )
 
     full_input = doctor_prompt + user_input
@@ -36,29 +41,24 @@ def get_response(user_input):
     input_ids = inputs['input_ids'].to(device)
 
     try:
-        with torch.no_grad():  # Turn off gradients as we don't need them for inference
-            outputs = model.generate(input_ids, max_length=1150, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
-        
+        with torch.no_grad():
+            outputs = model.generate(input_ids, max_length=150, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
         response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        response = response.replace(doctor_prompt, "").strip()  # Clean up the response
+        response = response.replace(doctor_prompt, "").strip()
         return response
-    
     except Exception as e:
         st.error(f"Error generating response: {e}")
         return "Sorry, something went wrong. Please try again."
 
-# Streamlit page configuration
-st.set_page_config(page_title="NeuroWheels - Chat with NeuroGuide", layout="wide")
-st.title("🧠 NeuroWheels")
+def show_chat_page():
+    st.header("🤖 NeuroGuide - Your Brainy Assistant")
+    user_input = st.text_input("Ask NeuroGuide anything...")
 
-# Chatbot Section (NeuroGuide)
-st.header("🤖 NeuroGuide - Your Brainy Assistant")
+    if user_input:
+        # Get response from the model
+        bot_response = get_response(user_input)
+        st.write(f"User: {user_input}")
+        st.write(f"NeuroGuide: {bot_response}")
 
-# User input field
-user_input = st.text_input("Ask NeuroGuide anything...")
-
-if user_input:
-    # Get response from the model
-    bot_response = get_response(user_input)
-    st.write(f"User: {user_input}")
-    st.write(f"NeuroGuide: {bot_response}")
+if __name__ == "__main__":
+    show_chat_page()
