@@ -52,7 +52,7 @@ def get_response(user_input):
         return response
     except Exception as e:
         st.error(f"Error generating response: {e}")
-        return "Sorry, something went wrong. Please try again."
+        return "Sorry, something went wrong. Please try again.."
 
 # Load or initialize user data (username, password)
 def load_user_data():
