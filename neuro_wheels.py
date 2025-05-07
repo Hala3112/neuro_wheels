@@ -13,8 +13,6 @@ import os
 import json
 import numpy as np
 import pandas as pd
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
-import torch
 import time
 
 # Path to store user data (in a JSON file)
@@ -23,36 +21,6 @@ USER_DATA_PATH = "user_data.json"
 # Initialize session state variables if not present
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
-
-# Load the GPT-2 model and tokenizer
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = GPT2LMHeadModel.from_pretrained("gpt2").to(device)
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-
-# Set padding token
-tokenizer.pad_token = tokenizer.eos_token  # Use EOS token as padding token
-
-def get_response(user_input):
-    doctor_prompt = (
-        "You are a compassionate and professional doctor helping individuals with mobility impairments. "
-        "Your responses should always be calming, supportive, and kind, with a focus on patient care. "
-        "When answering, imagine you are speaking to someone who is going through a challenging time and "
-        "needs encouragement and practical advice. "
-    )
-
-    full_input = doctor_prompt + user_input
-    inputs = tokenizer(full_input, return_tensors="pt", truncation=True, padding=True, max_length=1024)
-    input_ids = inputs['input_ids'].to(device)
-
-    try:
-        with torch.no_grad():
-            outputs = model.generate(input_ids, max_length=150, num_return_sequences=1, no_repeat_ngram_size=3, top_p=0.92, temperature=0.7, do_sample=True)
-        response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        response = response.replace(doctor_prompt, "").strip()
-        return response
-    except Exception as e:
-        st.error(f"Error generating response: {e}")
-        return "Sorry, something went wrong. Please try again."
 
 # Load or initialize user data (username, password)
 def load_user_data():
@@ -132,10 +100,9 @@ if st.session_state.authenticated:
         user_input = st.text_input("Ask NeuroGuide anything...")
 
         if user_input:
-            # Get response from the model
-            bot_response = get_response(user_input)
+            # Instead of calling GPT, just show the user input as response (for testing purpose)
             st.write(f"User: {user_input}")
-            st.write(f"NeuroGuide: {bot_response}")
+            st.write(f"NeuroGuide: {user_input}")  # Placeholder for response
 
     # -------------------------------
     # Welcome & Instructions Section
@@ -156,7 +123,7 @@ if st.session_state.authenticated:
 
         st.divider()
         st.subheader("🛠 How to Use This App")
-        st.markdown("""
+        st.markdown(""" 
         - 👉 **Chat with NeuroGuide: Your Dr.**
         - 📊 **Health Check-Ups**
         - 🎯 **Unlock Features**
